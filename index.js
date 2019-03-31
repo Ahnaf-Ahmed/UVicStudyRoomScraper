@@ -1,41 +1,34 @@
-let cheerio = require('cheerio');
-let fs = require('fs');
-let jsonframe = require('jsonframe-cheerio');
+let axios = require('axios'); // HTTP client
+let cheerio = require('cheerio'); // HTML parsing package
+let jsonframe = require('jsonframe-cheerio'); // a cheerio plugin I designed
+let fs = require('fs'); // is included in node.js - you don't need to install it
 
-let $ = cheerio.load(fs.readFileSync('index.html'));
-jsonframe($); // initializes the plugin
+axios.get('https://www.wuxiaworld.com')
+	.then((response) => {
 
-var frame = {
-	"companies": {           // setting the parent item as "companies"
-		"selector": ".item",    // defines the elements to search for
-		"data": [{              // "data": [{}] defines a list of items
-			"name": ".header [itemprop=name]",          // inline selector defining "name" so "company"."name"
-			"description": ".header [rel=description]", // inline selector defining "description" as "company"."description"
-			"url": {                                    // defining "url" by an attribute with "attr" and "selector" in an object
-				"selector": ".header [itemprop=name]",      // is actually the same as the inline selector
-				"attr": "href"                              // the attribute name to retrieve
-			},
-			"contact": {                                // set up a parent "contact" element as "company"."contact"
-				"selector": ".contact",                 // defines the element to search for
-				"data": {                               // defines the data which "contact" will contain
-					"telephone": {                          // using "type" to use "telephone" parser to extract only the telephone
-						"selector": "[itemprop=telephone]",     // simple selector for "telephone"                
-						"type": "telephone"                     // using "telephone" plugin parser
-					},
-					"employee": {                           // setting a parent node "employee" as "company"."contact"."employee"
-						"name": "[itemprop=employeeName]",          // inline selector defining "name"
-						"jobTitle": "[itemprop=employeeJobTitle]",  // inline selector defining "jobtitle"
-						"email": {                          // using "type" to use "email" parser to extract only the email
-							"selector": "[itemprop=email]",     // simple selector for "email"
-							"type": "email"                     // using "email" plugin parser
-						}
-					}
+		if(response.status === 200) {
+
+			var html = response.data;
+			let $ = cheerio.load(html); // We load the html we received into cheerio's parser
+			jsonframe($);               // We add the plugin to the cheerio's parser
+
+			fs.writeFileSync('ph.html', html); // This saves the html to a ph.html for checks
+
+			var productsFrame = {       // This is a simple conversation of the data structure
+				"products": {             // thanks to jsonframe
+					"selector": "table.table-novels tr",        //need to do (sectiontype).name (each piece you're going to iterate over)
+					"data": [{
+						"name": ".title a",
+						"Chapter title": ".visible-xs-inline a",
+						"time": ".timestamp"
+					}]
 				}
-			}
-		}]
-	}
+			};
 
-};
+			var products = $('body').scrape(productsFrame); // Scrape the list of products based on the json frame we defined before
+			fs.writeFileSync("products.json",JSON.stringify(products, null, 2)); // You can see that the output json is structured the way we wanted it thanks to the json frame
+		}
 
-var companiesList = $('.list.items').scrape(frame);
-console.log(JSON.stringify(companiesList)); // Output the data in the terminal
+	}, (error) => {
+		console.log("Humm: ", error);
+	});
