@@ -19,8 +19,10 @@ axios.get('https://www.wuxiaworld.com')
 					"selector": "table.table-novels tr",        //need to do (sectiontype).name (each piece you're going to iterate over)
 					"data": [{
 						"name": ".title a",
-						"Chapter title": ".visible-xs-inline a",
-						"time": ".timestamp"
+                        "Chapter title": ".visible-xs-inline a",
+                        "test": ".visible-xs-inline a@href",
+                        "author": ".hidden-xs + td",
+                        "time": ".timestamp"
 					}]
 				}
 			};
